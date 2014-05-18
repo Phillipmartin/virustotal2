@@ -12,7 +12,7 @@ This module is heavily inspired by, and borrows some code from, the [virustotal]
     import urllib2
     import csv
 
-    vt = virustotal2.VirusTotal2(API_KEY)
+    vt = virustotal2.VirusTotal2("b2510b80fec019d8b6896a8e575022690efecdfa858d1077c75b37dae5f4621e")
 
     mdl_content = urllib2.urlopen("http://www.malwaredomainlist.com/updatescsv.php")
     mdl_csv = csv.reader(mdl_content)
@@ -21,14 +21,15 @@ This module is heavily inspired by, and borrows some code from, the [virustotal]
         ip=line[2].split("/")[0]
         try:
             ip_report = vt.retrieve(ip)   #get the VT IP report for this IP
-        except VirusTotal2.ApiError as e:
-            print "API error: " + e + " on ip " + ip
+        except:
+            print "API error: on ip " + ip
 
         total_pos = sum([u["positives"] for u in ip_report.detected_urls])
         total_scan = sum([u["total"] for u in ip_report.detected_urls])
         count = len(ip_report.detected_urls)
 
-        print "URLs hosted on "+ip+" are called malicious by " + int(total_pos/count) + " / " + int(total_scan/count) + " scanners"
+        print str(count)+" URLs hosted on "+ip+" are called malicious by (on average) " + \
+              str(int(total_pos/count)) + " / " + str(int(total_scan/count)) + " scanners"
 
 
 
@@ -48,13 +49,13 @@ Optionally, you can pass limit_per_min, which is the number of queries you can p
 ### Retrieve a report
 Use the method retrieve() to get an existing report from VirusTotal.  This method's first argument can be:
 
-- an MD5, SHA1 or SHA256 of a file or a list of hashes
-- a path to a file or a list of paths to files
-- a URL or a list of URLs
+- an MD5, SHA1 or SHA256 of a file or a list of up to 4 hashes
+- a path to a file or list of paths to files
+- a URL or a list of up to 4 URLs
 - an IP address
 - a domain name
 
-retrieve() will attempt to auto-detect what you're giving it.  If you want to be explicit, you can use the type parameter with the values:
+retrieve() will attempt to auto-detect what you're giving it.  If you want to be explicit, you can use the thing_type parameter with the values:
 
 - ip
 - domain
@@ -62,44 +63,37 @@ retrieve() will attempt to auto-detect what you're giving it.  If you want to be
 - file
 - url
 
-Finally, if you want raw JSON back, as opposed to a VirusTotal2Report object, you can pass in raw=1.
+Finally, if you want raw JSON back, as opposed to a VirusTotal2Report object, you can pass in raw=True.
 
-If you pass retrieve() a list of items, you will get a list of reports back in the same order.  In order to preserve that semantic, if you pass in a list of files, some of which are invalid, you will get a list of reports and None back.
+If you pass retrieve() a list of items, you will get a list of reports back in the same order.
 
 
 ### Scan a new file
 Use the scan() method to scan a new URL or file.  This method's first argument can be:
 
-- a path to a file or list of paths to files
-- a url or list of URLs
+- a path to a file
+- a url or list of up to 4 URLs
+- a hash or a list of up to 25 hashes (for re-scanning only!)
 
 scan() will attempt to auto-detect what you're giving it.  If you want to be explicit, you can use the type parameter with the values:
 
 - file
 - url
 
-If you want raw JSON back, as opposed to a VirusTotal2Report object, you can pass in raw = 1.
+If you want raw JSON back, as opposed to a VirusTotal2Report object, you can pass in raw = True.
 
-Finally, if you want force a reanalysis of the resource you are passing in, set reanalyze = 1.  Note that the VirusTotal API currently does not allow URLs to be reanalyzed.
+Finally, if you want force a reanalysis of the resource you are passing in, set rescan = True.  Note that the VirusTotal API currently does not allow URLs to be reanalyzed.
 
 If you pass scan() a list of items, you will get a list of reports back in the same order.  In order to preserve that semantic, if you pass in a list of files, some of which are invalid, you will get a list of reports and None back.
 
 ### Using a Report
 The retrieve() and scan() methods return VirusTotal2Report objects.  These objects have some useful methods and also act as pass-thrus to the underlying JSON.
 
-#### wait(callback=None, preempt=0, interval=60)
-This method blocks until the file you've submitted for scanning is finished scanning.  THIS CAN TAKE A VERY LONG TIME.  If invoked with a callback, using the callback parameter, the waiting will be done in the background and your callback will be called when the report is ready.
-
-If you call wait() while an asynchronus wait is already pending there are a few possible outcomes.  If you call it with the same callback, nothing happens.  If you call it with a new callback, that callback gets added to the callback stack.  If you call it without a callback, implying a blocking call,THE WORLD EXPLODES.
-
-#### iswaiting()
-returns true if this report is waiting already
-
-#### status()
-returns "analyzing", "ok" or "error" based on the underlying value returned by virustotal.
+#### wait()
+This method blocks until the file or URL you've submitted for scanning is finished scanning.  THIS CAN TAKE A VERY LONG TIME.
 
 #### rescan()
-requests virustotal to rescan the sample that created the current report.  This is only valid for file or url reports.  This method modifies the current report rather than returning a new report object, so the following is normal:
+requests virustotal to rescan the sample that created the current report.  This is only valid for file or hash reports.  This method modifies the current report rather than returning a new report object, so the following is normal:
 
     >>> import virustotal2
     >>> vt = virustotal2.VirusTotal2(API_KEY)
@@ -117,7 +111,7 @@ requests virustotal to rescan the sample that created the current report.  This 
     ok
 
 #### update()
-checks to see if virustotal has completed it's analysis yet.
+checks to see if virustotal has completed it's analysis yet and if so it pull down the new JSON.
 
 ## References
 [Virustotal Public API](https://www.virustotal.com/en/documentation/public-api/)

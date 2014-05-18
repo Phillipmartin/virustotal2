@@ -20,7 +20,11 @@ def test_retrieve_ip():
 
 def test_retrieve_hash():
     report = vt.retrieve("cf8bd9dfddff007f75adf4c2be48005cea317c62")
-    assert isinstance(report,object)
+    report_list = vt.retrieve(["cf8bd9dfddff007f75adf4c2be48005cea317c62", "3f786850e387550fdab836ed7e6dc881de23001b"])
+
+    assert isinstance(report, object)
+    assert isinstance(report_list, list)
+    assert len(report_list) == 2
 
 
 def test_retrieve_file(tmpdir):
@@ -30,6 +34,7 @@ def test_retrieve_file(tmpdir):
     #although they will likely get angry at the file it writes out
     p.write(base64.b64decode("WDVPIVAlQEFQWzRcUFpYNTQoUF4pN0NDKTd9JEVJQ0FSLVNUQU5EQVJELUFOVElWSVJVUy1URVNULUZJTEUhJEgrSCoK"))
     report = vt.retrieve(str(p))
+
     assert isinstance(report,object)
 
 
@@ -40,7 +45,11 @@ def test_retrieve_domain():
 
 def test_retrieve_url():
     report = vt.retrieve("https://www.google.com")
+    report_list = vt.retrieve(["http://www.google.com", "http://www.slashdot.org", "http://www.reddit.com"])
+
+    assert isinstance(report_list,list)
     assert isinstance(report,object)
+    assert len(report_list) == 3
 
 
 def test_detect_url():
@@ -144,8 +153,6 @@ def test_scan_url():
 
     assert isinstance(report_list,list)
     assert isinstance(report,object)
-
-
 
 
 if __name__ == '__main__':
