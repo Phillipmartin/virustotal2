@@ -238,8 +238,7 @@ class VirusTotal2(object):
             if len(self.limits) >= self.limit_per_min:
                 time.sleep(self.limits[0] - now)
 
-    @staticmethod
-    def _grouped(iterable, n):
+    def _grouped(self, iterable, n):
         """
         take a list of items and return a list of groups of size n.  Fill any missing values at the end with None
 
