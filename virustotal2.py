@@ -273,7 +273,7 @@ class VirusTotal2(object):
             return "unknown"
 
         #Is a hash
-        if all(i in "1234567890abcdef" for i in thing.lower()) and len(thing) in [32, 40, 64]:
+        if all(i in "1234567890abcdef" for i in str(thing).lower()) and len(thing) in [32, 40, 64]:
             return "hash"
 
         # Is IP address
