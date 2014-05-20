@@ -15,7 +15,7 @@ def setup_module(module):
 
 def test_retrieve_ip():
     report = vt.retrieve("1.1.1.1")
-    assert isinstance(report,object)
+    assert isinstance(report, object)
 
 
 def test_retrieve_hash():
@@ -32,23 +32,37 @@ def test_retrieve_file(tmpdir):
     #base64-encoded EICAR (www.eicar.org) test file
     #the base64 is a trivial effort to try to make AV products not detect this test file as a virus
     #although they will likely get angry at the file it writes out
-    p.write(base64.b64decode("WDVPIVAlQEFQWzRcUFpYNTQoUF4pN0NDKTd9JEVJQ0FSLVNUQU5EQVJELUFOVElWSVJVUy1URVNULUZJTEUhJEgrSCoK"))
+    p.write(
+      base64.b64decode("WDVPIVAlQEFQWzRcUFpYNTQoUF4pN0NDKTd9JEVJQ0FSLVNUQU5EQVJELUFOVElWSVJVUy1URVNULUZJTEUhJEgrSCoK")
+    )
     report = vt.retrieve(str(p))
 
-    assert isinstance(report,object)
+    assert isinstance(report, object)
+
+def test_retrieve_base64file(tmpdir):
+    p = tmpdir.mkdir("sub").join("eicar.base64")
+    #base64-encoded EICAR (www.eicar.org) test file
+    #the base64 is a trivial effort to try to make AV products not detect this test file as a virus
+    #although they will likely get angry at the file it writes out
+    p.write(
+      "WDVPIVAlQEFQWzRcUFpYNTQoUF4pN0NDKTd9JEVJQ0FSLVNUQU5EQVJELUFOVElWSVJVUy1URVNULUZJTEUhJEgrSCoK"
+    )
+    report = vt.retrieve(str(p))
+
+    assert isinstance(report, object)
 
 
 def test_retrieve_domain():
     report = vt.retrieve("www.google.com")
-    assert isinstance(report,object)
+    assert isinstance(report, object)
 
 
 def test_retrieve_url():
     report = vt.retrieve("https://www.google.com")
     report_list = vt.retrieve(["http://www.google.com", "http://www.slashdot.org", "http://www.reddit.com"])
 
-    assert isinstance(report_list,list)
-    assert isinstance(report,object)
+    assert isinstance(report_list, list)
+    assert isinstance(report, object)
     assert len(report_list) == 3
 
 
@@ -62,7 +76,7 @@ def test_detect_file(tmpdir):
     p = tmpdir.mkdir("sub").join("hello.txt")
     p.write("content")
     what = vt._whatisthing(str(p))
-    assert what == "file"
+    assert what == "file_name"
 
 
 def test_detect_ip():
@@ -96,7 +110,7 @@ def test_detect_scanid():
 
 
 def test_detect_list():
-    mylist = ["1.1.1.1","2.2.2.2"]
+    mylist = ["1.1.1.1", "2.2.2.2"]
     what = vt._whatisthing(mylist)
     assert what == "ip"
 
@@ -111,13 +125,12 @@ def test_grouped():
 
 
 def test_call_limit():
-    now = time.time()
+    now = int(time.time())
     vt._limit_call_handler()
     vt._limit_call_handler()
     vt._limit_call_handler()
     vt._limit_call_handler()
-    now2 = time.time()
-
+    now2 = int(time.time())
     assert now2 - now >= 60
 
 
@@ -141,7 +154,9 @@ def test_scan_file(tmpdir):
     #base64-encoded EICAR (www.eicar.org) test file
     #the base64 is a trivial effort to try to make AV products not detect this test file as a virus
     #although they will likely get angry at the file it writes out
-    p.write(base64.b64decode("WDVPIVAlQEFQWzRcUFpYNTQoUF4pN0NDKTd9JEVJQ0FSLVNUQU5EQVJELUFOVElWSVJVUy1URVNULUZJTEUhJEgrSCoK"))
+    p.write(
+      base64.b64decode("WDVPIVAlQEFQWzRcUFpYNTQoUF4pN0NDKTd9JEVJQ0FSLVNUQU5EQVJELUFOVElWSVJVUy1URVNULUZJTEUhJEgrSCoK")
+    )
     report = vt.scan(str(p))
 
     assert isinstance(report, object)
@@ -151,9 +166,10 @@ def test_scan_url():
     report = vt.scan("https://www.google.com")
     report_list = vt.scan(["http://www.google.com", "http://www.slashdot.org", "http://www.reddit.com"])
 
-    assert isinstance(report_list,list)
-    assert isinstance(report,object)
+    assert isinstance(report_list, list)
+    assert isinstance(report, object)
 
 
 if __name__ == '__main__':
+    print "*NOTE* Tests are rate-limited, so they may take a long time to run!"
     pytest.main()

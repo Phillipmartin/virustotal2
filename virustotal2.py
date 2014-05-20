@@ -1,13 +1,5 @@
 #!/usr/bin/env python
-
-__author__ = "Philip Martin"
-__copyright__ = "Copyright 2014, Philip Martin"
-__credits__ = ["Philip Martin"]
-__license__ = "MIT"
-__version__ = "1.0"
-__maintainer__ = "Philip Martin"
-__email__ = "phillip.martin@gmail.com"
-__status__ = "Production"
+import base64
 
 import threading
 from itertools import izip_longest
@@ -19,22 +11,20 @@ import time
 import urllib2
 import urllib
 import hashlib
-import mimetypes
-import httplib
+import requests
 
 
 class VirusTotal2(object):
     _SCAN_ID_RE = re.compile(r"^[a-fA-F0-9]{64}-[0-9]{10}$")
 
     def __init__(self, api_key, limit_per_min=None):
-        limit_per_min = limit_per_min if limit_per_min is not None else 4
-
-        super(VirusTotal2, self).__init__()
-
         self.api_key = api_key
-        self.limit_per_min = limit_per_min
         self.limits = []
         self.limit_lock = threading.Lock()
+        if limit_per_min:
+            self.limit_per_min = limit_per_min
+        else:
+            self.limit_per_min = 4
 
     #we only scan files and URLs
     def scan(self, thing, thing_type=None, raw=False, rescan=False):
@@ -70,37 +60,42 @@ class VirusTotal2(object):
             self._limit_call_handler()
             result = urllib2.urlopen(req).read()
 
-        elif thing_type == "file" and rescan is False:
-            endpoint = "https://www.virustotal.com/vtapi/v2/file/scan"
-            fh = open(thing, 'rb')
-            content = fh.read()
-            host = "www.virustotal.com"
-            fields = [("apikey", self.api_key)]
-            files = [("file", thing, content)]
-
-            self._limit_call_handler()
-            result = postfile.post_multipart(host, endpoint, fields, files)
-        elif thing_type == "file" and rescan is True:
-            endpoint = "https://www.virustotal.com/vtapi/v2/file/rescan"
-            fh = open(thing, 'rb')
-            content = fh.read()
-            data["resource"] = hashlib.sha256(content).hexdigest()
-
-            req = urllib2.Request(endpoint, urllib.urlencode(data))
-            self._limit_call_handler()
-            result = urllib2.urlopen(req).read()
-        elif thing_type == "hash" and rescan is True:
-            endpoint = "https://www.virustotal.com/vtapi/v2/file/rescan"
-            if isinstance(thing, list):
-                data["resource"] = ", ".join(thing)
+        elif thing_type == "file_name" or thing_type == "base64":
+            if rescan:
+                endpoint = "https://www.virustotal.com/vtapi/v2/file/rescan"
+                with open(thing, 'rb') as f:
+                    if thing_type == "base64":
+                        content = base64.b64decode(f.read())
+                    else:
+                        content = f.read()
+                data["resource"] = hashlib.sha256(content).hexdigest()
+                req = urllib2.Request(endpoint, urllib.urlencode(data))
+                self._limit_call_handler()
+                result = urllib2.urlopen(req).read()
             else:
-                data["resource"] = thing
+                endpoint = "https://www.virustotal.com/vtapi/v2/file/scan"
+                with open(thing, 'rb') as f:
+                    if thing_type == "base64":
+                        file_contents = base64.b64decode(f.read())
+                    else:
+                        file_contents = f.read()
 
-            req = urllib2.Request(endpoint, urllib.urlencode(data))
-            self._limit_call_handler()
-            result = urllib2.urlopen(req).read()
-        elif thing_type == "hash" and rescan is not True:
-            raise TypeError("Hahses can only be re-scanned, please set rescan=True")
+                self._limit_call_handler()
+                result = requests.post(endpoint, data=data, files={"file": (os.path.basename(thing), file_contents)}).text
+
+        elif thing_type == "hash" and rescan is True:
+            if rescan:
+                endpoint = "https://www.virustotal.com/vtapi/v2/file/rescan"
+                if isinstance(thing, list):
+                    data["resource"] = ", ".join(thing)
+                else:
+                    data["resource"] = thing
+
+                req = urllib2.Request(endpoint, urllib.urlencode(data))
+                self._limit_call_handler()
+                result = urllib2.urlopen(req).read()
+            else:
+                raise TypeError("Hahses can only be re-scanned, please set rescan=True")
         else:
             raise TypeError("Unable to scan type '"+thing_type+".")
 
@@ -150,7 +145,7 @@ class VirusTotal2(object):
 
             req = urllib2.Request("%s?%s" % (endpoint, urllib.urlencode([(k, v) for k, v in data.items()])))
 
-        elif thing_type == "file":
+        elif thing_type == "file_name" or thing_type == "base64":
             endpoint = "http://www.virustotal.com/vtapi/v2/file/report"
             hashes = []
             if not isinstance(thing, list):
@@ -158,7 +153,10 @@ class VirusTotal2(object):
 
             for f in thing:
                 fh = open(f, 'rb')
-                content = fh.read()
+                if thing_type == "base64":
+                    content = base64.b64decode(fh.read())
+                else:
+                    content = fh.read()
                 hashval = hashlib.sha256(content).hexdigest()
                 hashes.append(hashval)
 
@@ -246,14 +244,14 @@ class VirusTotal2(object):
                 return
 
             now = time.time()
+            #TODO: Comment this/refactor
             self.limits = [l for l in self.limits if l > now]
             self.limits.append(now + 60)
 
             if len(self.limits) >= self.limit_per_min:
                 time.sleep(self.limits[0] - now)
 
-    @staticmethod
-    def _grouped(iterable, n):
+    def _grouped(self, iterable, n):
         """
         take a list of items and return a list of groups of size n.  Fill any missing values at the end with None
 
@@ -266,46 +264,52 @@ class VirusTotal2(object):
     def _whatisthing(self, thing):
         """
         Bucket the thing it gets passed into the list of items VT supports
-        Returns a sting or "unknown"
+        Returns a sting representation of the type of parameter passed in
 
         Keyword arguments:
-            thing - a string to identify
+            thing - a parameter to identify
         """
         if isinstance(thing, list):
             thing = thing[0]
         #per the API, bulk requests must be of the same type
-        #ignore that you can intersperce scan IDs and hashes for now
+        #ignore that you can intersperse scan IDs and hashes for now
         #...although, does that actually matter given the API semantics?
 
-        elif os.path.isfile(thing):
+        if isinstance(thing,str) and os.path.isfile(thing):
             #thing==filename
-            return "file"
+            # TODO: Add check for
+            if thing.endswith(".base64"):
+              return "base64"
+            else:
+              return "file_name"
 
         #implied failure case, thing is neither a list or a file, so we assume string
         if not isinstance(thing, basestring):
             return "unknown"
 
-            #Is a hash
-        if all(i in "1234567890abcdef" for i in thing.lower()) and len(thing) in [32, 40, 64]:
+        # Test if thing parameter is a hash (32, 40, or 64 characters long)
+        if all(i in "1234567890abcdef" for i in str(thing).lower()) and len(thing) in [32, 40, 64]:
             return "hash"
 
-            # Is IP address
-        if all(i in "1234567890." for i in thing) and len(thing) <= 15:
+        # Test if thing parameter is an IP address
+        elif all(i in "1234567890." for i in thing) and len(thing) <= 15:
             return "ip"
 
-            # Is domain name
-        if "." in thing and "/" not in thing:
+        # Test if thing parameter is a domain name
+        # TODO: Make this check stronger (technically "com" is a domain)
+        elif "." in thing and "/" not in thing:
             return "domain"
 
-            #Is scan ID
-        if self._SCAN_ID_RE.match(thing):
+        # Test if thing parameter is a VirusTotal scan id
+        elif self._SCAN_ID_RE.match(thing):
             return "scanid"
 
-            # Is URL ?
-        if urlparse.urlparse(thing).scheme:
+        # Test if thing parameter is a URL
+        elif urlparse.urlparse(thing).scheme:
             return "url"
-
-        return "unknown"
+        # If nothing is identified, return "Unknown"
+        else:
+            return "unknown"
 
 
 class VirusTotal2Report(object):
@@ -375,7 +379,7 @@ class VirusTotal2Report(object):
 
         if self.type in ("ip", "domain"):
             data = self.scan.retrieve(self.query, raw=True)
-        elif self.type == "file":
+        elif self.type == "file_name" or self.type == "base64":
             data = self.scan.retrieve(self.scan_id, thing_type="hash", raw=True)
         else:
             data = self.scan.retrieve(self.scan_id, thing_type=self.type, raw=True)
@@ -397,7 +401,7 @@ class VirusTotal2Report(object):
         Raises:
             TypeError if we don't get JSON back from VT
         """
-        if self.type in ("file", "hash"):
+        if self.type in ("file_name", "hash"):
             data = self.scan.retrieve(self.scan_id, thing_type="hash", raw=True, rescan=True)
         else:
             raise TypeError("cannot rescan type "+self.type)
@@ -409,8 +413,8 @@ class VirusTotal2Report(object):
 
     def wait(self):
         """
-        Wait until the Virustotal API is done scanning the current objeect.  If the current object is listed as
-        not in VirusTotal (can be the case with IPs or domains), or we already have results this function returns immediately.
+        Wait until the Virustotal API is done scanning the current object.  If the current object is listed as not in
+        VirusTotal (can be the case with IPs or domains), or we already have results this function returns immediately.
 
         Keyword arguments:
             none
@@ -424,59 +428,3 @@ class VirusTotal2Report(object):
         while self.response_code not in (1, 0):
             time.sleep(interval)
             self.update()
-
-
-
-# copied from https://www.virustotal.com/en/documentation/public-api/#scanning-files
-# noinspection PyClassHasNoInit
-class postfile:
-    @staticmethod
-    def post_multipart(host, selector, fields, files):
-        """
-        Post fields and files to an http host as multipart/form-data.
-        fields is a sequence of (name, value) elements for regular form fields.
-        files is a sequence of (name, filename, value) elements for data to be uploaded as files
-        Return the server's response page.
-        """
-        content_type, body = postfile.encode_multipart_formdata(fields, files)
-        h = httplib.HTTPS(host)
-        h.putrequest('POST', selector)
-        h.putheader('content-type', content_type)
-        h.putheader('content-length', str(len(body)))
-        h.endheaders()
-        h.send(body)
-        errcode, errmsg, headers = h.getreply()
-
-        return h.file.read()
-
-    @staticmethod
-    def encode_multipart_formdata(fields, files):
-        """
-        fields is a sequence of (name, value) elements for regular form fields.
-        files is a sequence of (name, filename, value) elements for data to be uploaded as files
-        Return (content_type, body) ready for httplib.HTTP instance
-        """
-        BOUNDARY = '----------ThIs_Is_tHe_bouNdaRY_$'
-        CRLF = '\r\n'
-        L = []
-        for (key, value) in fields:
-            L.append('--' + BOUNDARY)
-            L.append('Content-Disposition: form-data; name="%s"' % key)
-            L.append('')
-            L.append(value)
-        for (key, filename, value) in files:
-            L.append('--' + BOUNDARY)
-            L.append('Content-Disposition: form-data; name="%s"; filename="%s"' % (key, filename))
-            L.append('Content-Type: %s' % postfile.get_content_type(filename))
-            L.append('')
-            L.append(value)
-        L.append('--' + BOUNDARY + '--')
-        L.append('')
-        body = CRLF.join((bytes(i) for i in L))
-        content_type = 'multipart/form-data; boundary=%s' % BOUNDARY
-
-        return content_type, body
-
-    @staticmethod
-    def get_content_type(filename):
-        return mimetypes.guess_type(filename)[0] or 'application/octet-stream'
