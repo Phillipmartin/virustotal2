@@ -156,4 +156,5 @@ def test_scan_url():
 
 
 if __name__ == '__main__':
+    print "*NOTE* Tests are rate-limited, so they may take a long time to run!"
     pytest.main()
