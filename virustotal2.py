@@ -261,7 +261,7 @@ class VirusTotal2(object):
         if isinstance(thing, list):
             thing = thing[0]
         #per the API, bulk requests must be of the same type
-        #ignore that you can intersperce scan IDs and hashes for now
+        #ignore that you can intersperse scan IDs and hashes for now
         #...although, does that actually matter given the API semantics?
 
         elif os.path.isfile(thing):
@@ -272,23 +272,23 @@ class VirusTotal2(object):
         if not isinstance(thing, basestring):
             return "unknown"
 
-            #Is a hash
+        #Is a hash
         if all(i in "1234567890abcdef" for i in thing.lower()) and len(thing) in [32, 40, 64]:
             return "hash"
 
-            # Is IP address
+        # Is IP address
         if all(i in "1234567890." for i in thing) and len(thing) <= 15:
             return "ip"
 
-            # Is domain name
+        # Is domain name
         if "." in thing and "/" not in thing:
             return "domain"
 
-            #Is scan ID
+        #Is scan ID
         if self._SCAN_ID_RE.match(thing):
             return "scanid"
 
-            # Is URL ?
+        # Is URL ?
         if urlparse.urlparse(thing).scheme:
             return "url"
 
@@ -396,8 +396,8 @@ class VirusTotal2Report(object):
 
     def wait(self):
         """
-        Wait until the Virustotal API is done scanning the current objeect.  If the current object is listed as
-        not in VirusTotal (can be the case with IPs or domains), or we already have results this function returns immediately.
+        Wait until the Virustotal API is done scanning the current object.  If the current object is listed as not in
+        VirusTotal (can be the case with IPs or domains), or we already have results this function returns immediately.
 
         Keyword arguments:
             none
