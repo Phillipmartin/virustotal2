@@ -32,5 +32,5 @@ setup(
         "Topic :: Security",
         "Topic :: Software Development :: Libraries :: Python Modules",
     ],
-    requires=['pytest'],
+    requires=['pytest', 'requests'],
 )
