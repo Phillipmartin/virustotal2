@@ -244,6 +244,7 @@ class VirusTotal2(object):
                 return
 
             now = time.time()
+            #TODO: Comment this/refactor
             self.limits = [l for l in self.limits if l > now]
             self.limits.append(now + 60)
 

@@ -125,13 +125,12 @@ def test_grouped():
 
 
 def test_call_limit():
-    now = time.time()
+    now = int(time.time())
     vt._limit_call_handler()
     vt._limit_call_handler()
     vt._limit_call_handler()
     vt._limit_call_handler()
-    now2 = time.time()
-
+    now2 = int(time.time())
     assert now2 - now >= 60
 
 
