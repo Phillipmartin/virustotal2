@@ -264,7 +264,7 @@ class VirusTotal2(object):
         #ignore that you can intersperse scan IDs and hashes for now
         #...although, does that actually matter given the API semantics?
 
-        elif os.path.isfile(thing):
+        elif isinstance(thing,str) and os.path.isfile(thing):
             #thing==filename
             return "file"
 
