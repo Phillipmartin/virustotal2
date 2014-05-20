@@ -8,7 +8,7 @@ try:
 except:
     from distutils.core import setup
 
-import virustotal2
+import __init__ as virustotal2
 
 setup(
     name = "virustotal2",
