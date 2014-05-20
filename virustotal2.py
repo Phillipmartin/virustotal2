@@ -60,14 +60,14 @@ class VirusTotal2(object):
             self._limit_call_handler()
             result = urllib2.urlopen(req).read()
 
-        elif thing_type == "file" and rescan is False:
+        elif thing_type == "file_name" and rescan is False:
             endpoint = "https://www.virustotal.com/vtapi/v2/file/scan"
             with open(thing, 'rb') as f:
                 file_contents = f.read()
 
             self._limit_call_handler()
             result = requests.post(endpoint, data=data, files={"file": (os.path.basename(thing), file_contents)}).text
-        elif thing_type == "file" and rescan is True:
+        elif thing_type == "file_name" and rescan is True:
             endpoint = "https://www.virustotal.com/vtapi/v2/file/rescan"
             fh = open(thing, 'rb')
             content = fh.read()
@@ -137,7 +137,7 @@ class VirusTotal2(object):
 
             req = urllib2.Request("%s?%s" % (endpoint, urllib.urlencode([(k, v) for k, v in data.items()])))
 
-        elif thing_type == "file":
+        elif thing_type == "file_name":
             endpoint = "http://www.virustotal.com/vtapi/v2/file/report"
             hashes = []
             if not isinstance(thing, list):
@@ -266,7 +266,7 @@ class VirusTotal2(object):
 
         elif isinstance(thing,str) and os.path.isfile(thing):
             #thing==filename
-            return "file"
+            return "file_name"
 
         #implied failure case, thing is neither a list or a file, so we assume string
         if not isinstance(thing, basestring):
@@ -362,7 +362,7 @@ class VirusTotal2Report(object):
 
         if self.type in ("ip", "domain"):
             data = self.scan.retrieve(self.query, raw=True)
-        elif self.type == "file":
+        elif self.type == "file_name":
             data = self.scan.retrieve(self.scan_id, thing_type="hash", raw=True)
         else:
             data = self.scan.retrieve(self.scan_id, thing_type=self.type, raw=True)
@@ -384,7 +384,7 @@ class VirusTotal2Report(object):
         Raises:
             TypeError if we don't get JSON back from VT
         """
-        if self.type in ("file", "hash"):
+        if self.type in ("file_name", "hash"):
             data = self.scan.retrieve(self.scan_id, thing_type="hash", raw=True, rescan=True)
         else:
             raise TypeError("cannot rescan type "+self.type)
