@@ -17,8 +17,6 @@ class VirusTotal2(object):
     _SCAN_ID_RE = re.compile(r"^[a-fA-F0-9]{64}-[0-9]{10}$")
 
     def __init__(self, api_key, limit_per_min=None):
-        super(VirusTotal2, self).__init__()
-
         self.api_key = api_key
         self.limits = []
         self.limit_lock = threading.Lock()
