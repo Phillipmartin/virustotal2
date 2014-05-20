@@ -14,7 +14,7 @@ setup(
     name         = "virustotal2",
     description  = "Complete, Pythonic VirusTotal Public API 2.0 client",
     url          = "https://github.com/Phillipmartin/virustotal2",
-    test_suite   = "pytest",
+    test_suite   = "virustotal2_tests",
 
     py_modules   = ["virustotal2"],
     requires     = ['pytest', 'requests'],
