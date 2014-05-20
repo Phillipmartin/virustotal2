@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+import base64
 
 import threading
 from itertools import izip_longest
@@ -59,34 +60,42 @@ class VirusTotal2(object):
             self._limit_call_handler()
             result = urllib2.urlopen(req).read()
 
-        elif thing_type == "file_name" and rescan is False:
-            endpoint = "https://www.virustotal.com/vtapi/v2/file/scan"
-            with open(thing, 'rb') as f:
-                file_contents = f.read()
-
-            self._limit_call_handler()
-            result = requests.post(endpoint, data=data, files={"file": (os.path.basename(thing), file_contents)}).text
-        elif thing_type == "file_name" and rescan is True:
-            endpoint = "https://www.virustotal.com/vtapi/v2/file/rescan"
-            fh = open(thing, 'rb')
-            content = fh.read()
-            data["resource"] = hashlib.sha256(content).hexdigest()
-
-            req = urllib2.Request(endpoint, urllib.urlencode(data))
-            self._limit_call_handler()
-            result = urllib2.urlopen(req).read()
-        elif thing_type == "hash" and rescan is True:
-            endpoint = "https://www.virustotal.com/vtapi/v2/file/rescan"
-            if isinstance(thing, list):
-                data["resource"] = ", ".join(thing)
+        elif thing_type == "file_name" or thing_type == "base64":
+            if rescan:
+                endpoint = "https://www.virustotal.com/vtapi/v2/file/rescan"
+                with open(thing, 'rb') as f:
+                    if thing_type == "base64":
+                        content = base64.b64decode(f.read())
+                    else:
+                        content = f.read()
+                data["resource"] = hashlib.sha256(content).hexdigest()
+                req = urllib2.Request(endpoint, urllib.urlencode(data))
+                self._limit_call_handler()
+                result = urllib2.urlopen(req).read()
             else:
-                data["resource"] = thing
+                endpoint = "https://www.virustotal.com/vtapi/v2/file/scan"
+                with open(thing, 'rb') as f:
+                    if thing_type == "base64":
+                        file_contents = base64.b64decode(f.read())
+                    else:
+                        file_contents = f.read()
 
-            req = urllib2.Request(endpoint, urllib.urlencode(data))
-            self._limit_call_handler()
-            result = urllib2.urlopen(req).read()
-        elif thing_type == "hash" and rescan is not True:
-            raise TypeError("Hahses can only be re-scanned, please set rescan=True")
+                self._limit_call_handler()
+                result = requests.post(endpoint, data=data, files={"file": (os.path.basename(thing), file_contents)}).text
+
+        elif thing_type == "hash" and rescan is True:
+            if rescan:
+                endpoint = "https://www.virustotal.com/vtapi/v2/file/rescan"
+                if isinstance(thing, list):
+                    data["resource"] = ", ".join(thing)
+                else:
+                    data["resource"] = thing
+
+                req = urllib2.Request(endpoint, urllib.urlencode(data))
+                self._limit_call_handler()
+                result = urllib2.urlopen(req).read()
+            else:
+                raise TypeError("Hahses can only be re-scanned, please set rescan=True")
         else:
             raise TypeError("Unable to scan type '"+thing_type+".")
 
@@ -136,7 +145,7 @@ class VirusTotal2(object):
 
             req = urllib2.Request("%s?%s" % (endpoint, urllib.urlencode([(k, v) for k, v in data.items()])))
 
-        elif thing_type == "file_name":
+        elif thing_type == "file_name" or "base64":
             endpoint = "http://www.virustotal.com/vtapi/v2/file/report"
             hashes = []
             if not isinstance(thing, list):
@@ -144,7 +153,10 @@ class VirusTotal2(object):
 
             for f in thing:
                 fh = open(f, 'rb')
-                content = fh.read()
+                if thing_type == "base64":
+                    content = base64.b64decode(fh.read())
+                else:
+                    content = fh.read()
                 hashval = hashlib.sha256(content).hexdigest()
                 hashes.append(hashval)
 
@@ -264,7 +276,11 @@ class VirusTotal2(object):
 
         if isinstance(thing,str) and os.path.isfile(thing):
             #thing==filename
-            return "file_name"
+            # TODO: Add check for
+            if thing.endswith(".base64"):
+              return "base64"
+            else:
+              return "file_name"
 
         #implied failure case, thing is neither a list or a file, so we assume string
         if not isinstance(thing, basestring):
@@ -362,7 +378,7 @@ class VirusTotal2Report(object):
 
         if self.type in ("ip", "domain"):
             data = self.scan.retrieve(self.query, raw=True)
-        elif self.type == "file_name":
+        elif self.type == "file_name" or self.type == "base64":
             data = self.scan.retrieve(self.scan_id, thing_type="hash", raw=True)
         else:
             data = self.scan.retrieve(self.scan_id, thing_type=self.type, raw=True)

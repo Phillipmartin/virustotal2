@@ -39,6 +39,18 @@ def test_retrieve_file(tmpdir):
 
     assert isinstance(report, object)
 
+def test_retrieve_base64file(tmpdir):
+    p = tmpdir.mkdir("sub").join("eicar.base64")
+    #base64-encoded EICAR (www.eicar.org) test file
+    #the base64 is a trivial effort to try to make AV products not detect this test file as a virus
+    #although they will likely get angry at the file it writes out
+    p.write(
+      "WDVPIVAlQEFQWzRcUFpYNTQoUF4pN0NDKTd9JEVJQ0FSLVNUQU5EQVJELUFOVElWSVJVUy1URVNULUZJTEUhJEgrSCoK"
+    )
+    report = vt.retrieve(str(p))
+
+    assert isinstance(report, object)
+
 
 def test_retrieve_domain():
     report = vt.retrieve("www.google.com")

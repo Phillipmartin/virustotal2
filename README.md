@@ -51,6 +51,7 @@ Use the method retrieve() to get an existing report from VirusTotal.  This metho
 
 - an MD5, SHA1 or SHA256 of a file or a list of up to 4 hashes
 - a path to a file or list of paths to files
+- a base64-encoded version of a file or list of paths to files (filename must end in .base64!)
 - a URL or a list of up to 4 URLs
 - an IP address
 - a domain name
@@ -61,6 +62,7 @@ retrieve() will attempt to auto-detect what you're giving it.  If you want to be
 - domain
 - hash
 - file
+- base64
 - url
 
 Finally, if you want raw JSON back, as opposed to a VirusTotal2Report object, you can pass in raw=True.
@@ -78,6 +80,7 @@ Use the scan() method to scan a new URL or file.  This method's first argument c
 scan() will attempt to auto-detect what you're giving it.  If you want to be explicit, you can use the type parameter with the values:
 
 - file
+- base64
 - url
 
 If you want raw JSON back, as opposed to a VirusTotal2Report object, you can pass in raw = True.
