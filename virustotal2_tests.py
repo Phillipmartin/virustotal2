@@ -64,7 +64,7 @@ def test_detect_file(tmpdir):
     p = tmpdir.mkdir("sub").join("hello.txt")
     p.write("content")
     what = vt._whatisthing(str(p))
-    assert what == "file"
+    assert what == "file_name"
 
 
 def test_detect_ip():
