@@ -252,10 +252,10 @@ class VirusTotal2(object):
     def _whatisthing(self, thing):
         """
         Bucket the thing it gets passed into the list of items VT supports
-        Returns a sting or "unknown"
+        Returns a sting representation of the type of parameter passed in
 
         Keyword arguments:
-            thing - a string to identify
+            thing - a parameter to identify
         """
         if isinstance(thing, list):
             thing = thing[0]
@@ -271,27 +271,29 @@ class VirusTotal2(object):
         if not isinstance(thing, basestring):
             return "unknown"
 
-        #Is a hash
+        # Test if thing parameter is a hash (32, 40, or 64 characters long)
         if all(i in "1234567890abcdef" for i in str(thing).lower()) and len(thing) in [32, 40, 64]:
             return "hash"
 
-        # Is IP address
-        if all(i in "1234567890." for i in thing) and len(thing) <= 15:
+        # Test if thing parameter is an IP address
+        elif all(i in "1234567890." for i in thing) and len(thing) <= 15:
             return "ip"
 
-        # Is domain name
-        if "." in thing and "/" not in thing:
+        # Test if thing parameter is a domain name
+        # TODO: Make this check stronger (technically "com" is a domain)
+        elif "." in thing and "/" not in thing:
             return "domain"
 
-        #Is scan ID
-        if self._SCAN_ID_RE.match(thing):
+        # Test if thing parameter is a VirusTotal scan id
+        elif self._SCAN_ID_RE.match(thing):
             return "scanid"
 
-        # Is URL ?
-        if urlparse.urlparse(thing).scheme:
+        # Test if thing parameter is a URL
+        elif urlparse.urlparse(thing).scheme:
             return "url"
-
-        return "unknown"
+        # If nothing is identified, return "Unknown"
+        else:
+            return "unknown"
 
 
 class VirusTotal2Report(object):
