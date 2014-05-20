@@ -17,14 +17,15 @@ class VirusTotal2(object):
     _SCAN_ID_RE = re.compile(r"^[a-fA-F0-9]{64}-[0-9]{10}$")
 
     def __init__(self, api_key, limit_per_min=None):
-        limit_per_min = limit_per_min if limit_per_min is not None else 4
-
         super(VirusTotal2, self).__init__()
 
         self.api_key = api_key
-        self.limit_per_min = limit_per_min
         self.limits = []
         self.limit_lock = threading.Lock()
+        if limit_per_min:
+            self.limit_per_min = limit_per_min
+        else:
+            self.limit_per_min = 4
 
     #we only scan files and URLs
     def scan(self, thing, thing_type=None, raw=False, rescan=False):
