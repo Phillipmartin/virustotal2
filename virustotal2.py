@@ -63,10 +63,10 @@ class VirusTotal2(object):
         elif thing_type == "file" and rescan is False:
             endpoint = "https://www.virustotal.com/vtapi/v2/file/scan"
             with open(thing, 'rb') as f:
-                fileContents = f.read()
+                file_contents = f.read()
 
             self._limit_call_handler()
-            result = requests.post(endpoint, data=data, files={"file": (os.path.basename(thing), fileContents)}).text
+            result = requests.post(endpoint, data=data, files={"file": (os.path.basename(thing), file_contents)}).text
         elif thing_type == "file" and rescan is True:
             endpoint = "https://www.virustotal.com/vtapi/v2/file/rescan"
             fh = open(thing, 'rb')
