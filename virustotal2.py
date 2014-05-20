@@ -145,7 +145,7 @@ class VirusTotal2(object):
 
             req = urllib2.Request("%s?%s" % (endpoint, urllib.urlencode([(k, v) for k, v in data.items()])))
 
-        elif thing_type == "file_name" or "base64":
+        elif thing_type == "file_name" or thing_type == "base64":
             endpoint = "http://www.virustotal.com/vtapi/v2/file/report"
             hashes = []
             if not isinstance(thing, list):
