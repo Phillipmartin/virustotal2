@@ -17,6 +17,10 @@ def test_retrieve_ip():
     report = vt.retrieve("1.1.1.1")
     assert isinstance(report, object)
 
+    report_list = vt.retrieve(["2.2.2.2", "3.3.3.3"])
+    assert isinstance(report_list, list)
+    assert len(report_list) == 2
+
 
 def test_retrieve_hash():
     report = vt.retrieve("cf8bd9dfddff007f75adf4c2be48005cea317c62")
@@ -60,10 +64,14 @@ def test_retrieve_domain():
 def test_retrieve_url():
     report = vt.retrieve("https://www.google.com")
     report_list = vt.retrieve(["http://www.google.com", "http://www.slashdot.org", "http://www.reddit.com"])
+    long_report_list = vt.retrieve(["http://www.google.com", "http://www.slashdot.org", "http://www.reddit.com",
+                                    "http://www.cnn.com", "http://www.yahoo.com"])
 
     assert isinstance(report_list, list)
+    assert isinstance(long_report_list, list)
     assert isinstance(report, object)
     assert len(report_list) == 3
+    assert len(long_report_list) == 5
 
 
 def test_detect_url():

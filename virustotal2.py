@@ -17,6 +17,13 @@ class VirusTotal2(object):
 
     def __init__(self, api_key, limit_per_min=None):
         self.api_key = api_key
+        self._urls_per_retrieve = 4
+        self._hashes_per_retrieve = 4
+        self._ips_per_retrieve = 1
+        self._domains_per_retrieve = 1
+        self._urls_per_scan = 4
+        self._hashes_per_scan = 25
+        self._files_per_scan = 1
         self.limits = []
         self.limit_lock = threading.Lock()
         if limit_per_min:
@@ -120,20 +127,66 @@ class VirusTotal2(object):
         if thing_type == "url":
             endpoint = "http://www.virustotal.com/vtapi/v2/url/report"
             if isinstance(thing, list):
-                data["resource"] = "\n".join(thing)
+                #break the list we get into groups of 4, per the VT API limits
+                list_of_lists = self._grouped(thing, self._urls_per_retrieve)
+                list_of_results = []
+                #this is going to get a little messy
+                #we're gong to re-group the list of URLs we get into groups of 4, send that query to VT
+                #and tack the results onto list_of_results.  The results we get back are actually going to be one
+                #JSON list per query.  We're then going to convert the JSON into lists and dicts, mash it all together
+                #into a single list of dicts, convert it back to JSON and send it on it's way.
+                #
+                #API limits?  What API limits?
+                #
+                for group in list_of_lists:
+                    data["resource"] = "\n".join([url for url in group if url is not None])
+                    self._limit_call_handler()
+                    try:
+                        ret = json.loads(requests.post(endpoint, data=data).text)
+                    except:
+                        raise TypeError
+
+                    if not isinstance(ret, list):
+                        #if we get a list of URLs that is N+1 (e.g. 5, 9, 13) the last query will not return a list
+                        ret = [ret]
+
+                    for item in ret:
+                        list_of_results.append(item)
+
+                result = json.dumps(list_of_results)
+
             else:
                 data["resource"] = thing
-            self._limit_call_handler()
-            result = requests.post(endpoint, data=data).text
+                self._limit_call_handler()
+                result = requests.post(endpoint, data=data).text
 
         elif thing_type == "ip":
             endpoint = "http://www.virustotal.com/vtapi/v2/ip-address/report"
-            #IPs don't support bulk queries
-            if isinstance(thing, list):
-                raise TypeError
-            data["ip"] = thing
-            self._limit_call_handler()
-            result = requests.get(endpoint, params=data).text
+            if not isinstance(thing, list):
+                thing = [thing]
+            #
+            #Much like the URL query above, we turn a list of N IPs into N separate queries and aggregate the results
+            #but in this case the API only supports one IP at a time, so we're spared the tedious de-aggregating
+            #and re-aggregating of list objects.
+            #
+            list_of_results = []
+            for ip in thing:
+                data["ip"] = ip
+                self._limit_call_handler()
+                try:
+                    ret = json.loads(requests.get(endpoint, params=data).text)
+                except:
+                    raise TypeError
+
+                list_of_results.append(ret)
+
+                #if we're only dealing with a single IP, don't return a list of a single element, just
+                #return the element.  This seems to make more intuitive sense than the alternative...
+                #although what probably makes the most sense is to match how we're called.
+            if len(list_of_results) == 1:
+                list_of_results = list_of_results[0]
+
+            result = json.dumps(list_of_results)
 
         elif thing_type == "file_name" or thing_type == "base64":
             endpoint = "http://www.virustotal.com/vtapi/v2/file/report"
@@ -323,6 +376,8 @@ class VirusTotal2Report(object):
 
         #initial API calls return response_code = 1
         #we expect -2, as the scan is queued, so we update to get what we think we should have,
+        #
+        #TODO: we should only do this if we are scanning an object, not if we are getting a report
         self.update()
 
     def __repr__(self):
