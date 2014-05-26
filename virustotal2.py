@@ -221,20 +221,30 @@ class VirusTotal2(object):
 
     def _limit_call_handler(self):
         """
-        Ensure we don't exceed the 4 requests a minute limit by leveraging a thread lock
+        Ensure we don't exceed the N requests a minute limit by leveraging a thread lock
 
         Keyword arguments:
             None
         """
+        #acquire a lock on our threading.Lock() object
         with self.limit_lock:
+            #if we have no configured limit, exit.  the lock releases based on scope
             if self.limit_per_min <= 0:
                 return
 
             now = time.time()
-            #TODO: Comment this/refactor
+            #self.limits is a list of query times + 60 seconds.  In essence it is a list of times
+            #that queries time out of the 60 second query window.
+
+            #this check expires any limits that have passed
             self.limits = [l for l in self.limits if l > now]
+            #and we tack on the current query
             self.limits.append(now + 60)
 
+            #if we have more than our limit of queries (and remember, we call this before we actually
+            #execute a query) we sleep until the oldest query on the list (element 0 because we append
+            #new queries) times out.  We don't worry about cleanup because next time this routine runs
+            #it will clean itself up.
             if len(self.limits) >= self.limit_per_min:
                 time.sleep(self.limits[0] - now)
 
