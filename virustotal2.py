@@ -8,8 +8,6 @@ import urlparse
 import re
 import json
 import time
-import urllib2
-import urllib
 import hashlib
 import requests
 
@@ -126,7 +124,7 @@ class VirusTotal2(object):
             else:
                 data["resource"] = thing
 
-            req = urllib2.Request(endpoint, urllib.urlencode(data))
+            result = requests.post(endpoint, data=data).text
 
         elif thing_type == "ip":
             endpoint = "http://www.virustotal.com/vtapi/v2/ip-address/report"
@@ -135,7 +133,7 @@ class VirusTotal2(object):
                 raise TypeError
             data["ip"] = thing
 
-            req = urllib2.Request("%s?%s" % (endpoint, urllib.urlencode([(k, v) for k, v in data.items()])))
+            result = requests.get(endpoint, params=data).text
 
         elif thing_type == "file_name" or thing_type == "base64":
             endpoint = "http://www.virustotal.com/vtapi/v2/file/report"
@@ -154,7 +152,7 @@ class VirusTotal2(object):
 
             data["resource"] = ", ".join(hashes)
 
-            req = urllib2.Request(endpoint, urllib.urlencode(data))
+            result = requests.post(endpoint, data=data).text
 
         elif thing_type == 'domain':
             endpoint = "http://www.virustotal.com/vtapi/v2/domain/report"
@@ -163,7 +161,7 @@ class VirusTotal2(object):
                 raise TypeError
             data["domain"] = thing
 
-            req = urllib2.Request("%s?%s" % (endpoint, urllib.urlencode([(k, v) for k, v in data.items()])))
+            result = requests.get(endpoint, params=data).text
 
         elif thing_type == 'hash':
             endpoint = "http://www.virustotal.com/vtapi/v2/file/report"
@@ -172,7 +170,7 @@ class VirusTotal2(object):
             else:
                 data["resource"] = thing
 
-            req = urllib2.Request(endpoint, urllib.urlencode(data))
+            result = requests.post(endpoint, data=data).text
 
         elif thing_type == "scanid":
             #TODO ???
@@ -183,9 +181,6 @@ class VirusTotal2(object):
 
         #blocks until we won't violate the 4 queries per min rule
         self._limit_call_handler()
-
-        #result here is a json string
-        result = urllib2.urlopen(req).read()
 
         #should we just return raw JSON?
         if raw:
