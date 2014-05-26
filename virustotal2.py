@@ -83,7 +83,7 @@ class VirusTotal2(object):
                 self._limit_call_handler()
                 result = requests.post(endpoint, data=data, files={"file": (os.path.basename(thing), file_contents)}).text
 
-        elif thing_type == "hash" and rescan is True:
+        elif thing_type == "hash":
             if rescan:
                 endpoint = "https://www.virustotal.com/vtapi/v2/file/rescan"
                 if isinstance(thing, list):
