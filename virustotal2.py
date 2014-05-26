@@ -56,32 +56,25 @@ class VirusTotal2(object):
             else:
                 data["url"] = thing
 
-            req = urllib2.Request(endpoint, urllib.urlencode(data))
             self._limit_call_handler()
-            result = urllib2.urlopen(req).read()
+            result = requests.post(endpoint, data=data).text
 
         elif thing_type == "file_name" or thing_type == "base64":
+            with open(thing, 'rb') as f:
+                if thing_type == "base64":
+                    content = base64.b64decode(f.read())
+                else:
+                    content = f.read()
+
             if rescan:
                 endpoint = "https://www.virustotal.com/vtapi/v2/file/rescan"
-                with open(thing, 'rb') as f:
-                    if thing_type == "base64":
-                        content = base64.b64decode(f.read())
-                    else:
-                        content = f.read()
                 data["resource"] = hashlib.sha256(content).hexdigest()
-                req = urllib2.Request(endpoint, urllib.urlencode(data))
                 self._limit_call_handler()
-                result = urllib2.urlopen(req).read()
+                result = requests.post(endpoint, data=data).text
             else:
                 endpoint = "https://www.virustotal.com/vtapi/v2/file/scan"
-                with open(thing, 'rb') as f:
-                    if thing_type == "base64":
-                        file_contents = base64.b64decode(f.read())
-                    else:
-                        file_contents = f.read()
-
                 self._limit_call_handler()
-                result = requests.post(endpoint, data=data, files={"file": (os.path.basename(thing), file_contents)}).text
+                result = requests.post(endpoint, data=data, files={"file": (os.path.basename(thing), content)}).text
 
         elif thing_type == "hash":
             if rescan:
@@ -91,9 +84,8 @@ class VirusTotal2(object):
                 else:
                     data["resource"] = thing
 
-                req = urllib2.Request(endpoint, urllib.urlencode(data))
                 self._limit_call_handler()
-                result = urllib2.urlopen(req).read()
+                result = requests.post(endpoint, data=data).text()
             else:
                 raise TypeError("Hahses can only be re-scanned, please set rescan=True")
         else:
