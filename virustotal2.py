@@ -123,7 +123,7 @@ class VirusTotal2(object):
                 data["resource"] = "\n".join(thing)
             else:
                 data["resource"] = thing
-
+            self._limit_call_handler()
             result = requests.post(endpoint, data=data).text
 
         elif thing_type == "ip":
@@ -132,7 +132,7 @@ class VirusTotal2(object):
             if isinstance(thing, list):
                 raise TypeError
             data["ip"] = thing
-
+            self._limit_call_handler()
             result = requests.get(endpoint, params=data).text
 
         elif thing_type == "file_name" or thing_type == "base64":
@@ -151,7 +151,7 @@ class VirusTotal2(object):
                 hashes.append(hashval)
 
             data["resource"] = ", ".join(hashes)
-
+            self._limit_call_handler()
             result = requests.post(endpoint, data=data).text
 
         elif thing_type == 'domain':
@@ -160,7 +160,7 @@ class VirusTotal2(object):
             if isinstance(thing, list):
                 raise TypeError
             data["domain"] = thing
-
+            self._limit_call_handler()
             result = requests.get(endpoint, params=data).text
 
         elif thing_type == 'hash':
@@ -169,18 +169,17 @@ class VirusTotal2(object):
                 data["resource"] = ", ".join(thing)
             else:
                 data["resource"] = thing
-
+            self._limit_call_handler()
             result = requests.post(endpoint, data=data).text
 
         elif thing_type == "scanid":
-            #TODO ???
-            raise TypeError
+            #The virustotal API doesn't have a single endpoint for scanIDs.  You need to submit URL scanIDs
+            #to the URL endpoint, file scanIDs to the file endpoint, etc.  Therefore, we can do nothing with a
+            #scanID or array of scanIDs unless you specify the thing_type yourself.
+            raise TypeError("Can't infer the proper endpoint when given scanIDs without a thing_type that is not scanID")
 
         else:
             raise TypeError("Unable to scan type '"+thing_type+".")
-
-        #blocks until we won't violate the 4 queries per min rule
-        self._limit_call_handler()
 
         #should we just return raw JSON?
         if raw:
@@ -213,9 +212,9 @@ class VirusTotal2(object):
                     for (i, rep) in enumerate(obj):
                         report.append(VirusTotal2Report(rep, self, thing_id, thing[i]))
             except:
-                raise TypeError("VT String unparsable: "+str(result))
+                raise TypeError("VT String is unparsable: "+str(result))
         else:
-            raise TypeError("VT String unparsable: "+result)
+            raise TypeError("VT String (which is not a string?) is unparsable: "+str(result))
 
         return report if len(report) > 1 else report[0]
 
@@ -272,7 +271,10 @@ class VirusTotal2(object):
         #ignore that you can intersperse scan IDs and hashes for now
         #...although, does that actually matter given the API semantics?
 
-        if isinstance(thing,str) and os.path.isfile(thing):
+        #we use basestring as the type to maintain unicode compliance in a python 2.x world
+        #https://stackoverflow.com/questions/1979004/what-is-the-difference-between-isinstanceaaa-basestring-and-isinstanceaaa
+
+        if isinstance(thing,basestring) and os.path.isfile(thing):
             #thing==filename
             # TODO: Add check for
             if thing.endswith(".base64"):
