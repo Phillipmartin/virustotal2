@@ -11,7 +11,12 @@ import sys
 from setuptools.command.test import test as TestCommand
 import __init__ as virustotal2
 
-
+try:
+    from pypandoc import convert
+    read_md = lambda f: convert(f, 'rst')
+except ImportError:
+    print("warning: pypandoc module not found, could not convert Markdown to RST")
+    read_md = lambda f: open(f, 'r').read()
 
 class PyTest(TestCommand):
     def finalize_options(self):
@@ -25,9 +30,6 @@ class PyTest(TestCommand):
         errno = pytest.main(self.test_args)
         sys.exit(errno)
 
-with open('README.md') as file:
-    long_description = file.read()
-
 setup(
     name         = "virustotal2",
     description  = "Complete, Pythonic VirusTotal Public API 2.0 client",
@@ -38,6 +40,7 @@ setup(
     requires     = [
         'requests',
     ],
+    long_description=read_md('README.md'),
     classifiers=[
         "Development Status :: 4 - Beta",
         "Environment :: Console",
