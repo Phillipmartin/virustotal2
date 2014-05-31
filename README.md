@@ -1,5 +1,7 @@
 # virustotal2
 
+[![Build Status](https://travis-ci.org/Phillipmartin/virustotal2.svg?branch=master)](https://travis-ci.org/Phillipmartin/virustotal2)
+
 A portable, Pythonic and complete implementation of the [Virustotal](https://www.virustotal.com/) [Public API](https://www.virustotal.com/en/documentation/public-api/).  It would also implement the Private API if VT would like to give me access... :)
 
 This module is heavily inspired by, and borrows some code from, the [virustotal](https://github.com/Gawen/virustotal) module.  In particular, it uses the same rate limiting logic and deals with report updating in the same way.  I ended up re-writing the module from scratch, however, and in the process made some new choices that broke backwards compatibility.  Thus, we have virustotal2.
