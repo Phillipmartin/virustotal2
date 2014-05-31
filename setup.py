@@ -3,18 +3,36 @@
 #TODO: fix tests
 
 try:
-    from setuptools import setup
+    from setuptools import setup, Command
 
 except:
-    from distutils.core import setup
+    from distutils.core import setup, Command
 
 import __init__ as virustotal2
+
+
+
+
+class PyTest(Command):
+    user_options = []
+    def initialize_options(self):
+        pass
+
+    def finalize_options(self):
+        pass
+
+    def run(self):
+        import sys,subprocess
+        errno = subprocess.call([sys.executable, 'virustotal2_test.py'])
+        raise SystemExit(errno)
 
 setup(
     name         = "virustotal2",
     description  = "Complete, Pythonic VirusTotal Public API 2.0 client",
     url          = "https://github.com/Phillipmartin/virustotal2",
-    test_suite   = "virustotal2_tests",
+    tests_require = ['pytest'],
+    #cmdclass = {'test': PyTest},
+    test_suite = ['pytest'],
 
     py_modules   = ["virustotal2"],
     requires     = ['pytest', 'requests'],
