@@ -25,16 +25,20 @@ class PyTest(TestCommand):
         errno = pytest.main(self.test_args)
         sys.exit(errno)
 
+with open('README.md') as file:
+    long_description = file.read()
+
 setup(
     name         = "virustotal2",
     description  = "Complete, Pythonic VirusTotal Public API 2.0 client",
     url          = "https://github.com/Phillipmartin/virustotal2",
     tests_require = ['pytest'],
     cmdclass = {'test': PyTest},
-
     py_modules   = ["virustotal2"],
-    requires     = ['pytest', 'requests'],
-    classifiers  = [
+    requires     = [
+        'requests',
+    ],
+    classifiers=[
         "Development Status :: 4 - Beta",
         "Environment :: Console",
         "Intended Audience :: Developers",
