@@ -3,36 +3,34 @@
 #TODO: fix tests
 
 try:
-    from setuptools import setup, Command
+    from setuptools import setup
 
 except:
-    from distutils.core import setup, Command
-
+    from distutils.core import setup
+import sys
+from setuptools.command.test import test as TestCommand
 import __init__ as virustotal2
 
 
 
-
-class PyTest(Command):
-    user_options = []
-    def initialize_options(self):
-        pass
-
+class PyTest(TestCommand):
     def finalize_options(self):
-        pass
+        TestCommand.finalize_options(self)
+        self.test_args = []
+        self.test_suite = True
 
-    def run(self):
-        import sys,subprocess
-        errno = subprocess.call([sys.executable, 'virustotal2_test.py'])
-        raise SystemExit(errno)
+    def run_tests(self):
+        #import here, cause outside the eggs aren't loaded
+        import pytest
+        errno = pytest.main(self.test_args)
+        sys.exit(errno)
 
 setup(
     name         = "virustotal2",
     description  = "Complete, Pythonic VirusTotal Public API 2.0 client",
     url          = "https://github.com/Phillipmartin/virustotal2",
     tests_require = ['pytest'],
-    #cmdclass = {'test': PyTest},
-    test_suite = ['pytest'],
+    cmdclass = {'test': PyTest},
 
     py_modules   = ["virustotal2"],
     requires     = ['pytest', 'requests'],
