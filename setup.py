@@ -9,7 +9,6 @@ except:
     from distutils.core import setup
 import sys
 from setuptools.command.test import test as TestCommand
-import __init__ as virustotal2
 
 try:
     from pypandoc import convert
@@ -37,6 +36,7 @@ setup(
     tests_require = ['pytest'],
     cmdclass = {'test': PyTest},
     py_modules   = ["virustotal2"],
+    include_package_data=True,
     requires     = [
         'requests',
     ],
@@ -51,8 +51,8 @@ setup(
         "Topic :: Security",
         "Topic :: Software Development :: Libraries :: Python Modules",
     ],
-    license      = virustotal2.__license__,
-    version      = virustotal2.__version__,
-    author       = virustotal2.__author__,
-    author_email = virustotal2.__email__,
+    license      = "MIT",
+    version      = "1.1",
+    author       = "Philip Martin",
+    author_email = "phillip.martin@gmail.com",
 )
